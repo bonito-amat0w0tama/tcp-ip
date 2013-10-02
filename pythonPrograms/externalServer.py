@@ -66,6 +66,8 @@ clientsock.close()
 
 
 class externalCodeReceiver():
+    byteSizeInt = 4
+    byteSizeHeader = 4
     def __init__(self, host, port):
                 
         #AF_INET:IPv4 インターネット・プロトコル
@@ -79,5 +81,22 @@ class externalCodeReceiver():
         #リクエストの接続待ちキューを1に設定し、
         #接続要求の準備をする
         self.serversock.listen(1)
+   # FIXME: name of clientsock
+    def readHeader(self, clientsock):
+        # bufferSize = 4
+        header = clientsock.recv(byreSizeHeader)
+        return str(header)
 
-    def readIntn(
+    def readInt(self, clientsock):
+        # buffersize = 4
+        # FIXME:variable name
+        intBuffer = struct.unpack('i', clientsock.recv(byteSizeInt))
+        return intBuffer
+    def getMatrix(self, clientsock):
+        nmbRows = clientsock.recv(byteSizeInt)
+        nmbCols = clientsock.recv(byteSizeInt)
+
+
+
+
+
