@@ -25,51 +25,64 @@ class externalCodeReceiver():
         #接続要求の準備をする
         self.serversock.listen(1)
         print "waiting..."
-        self.clientsock, clientAddres = self.serversock.accept()
+        self.clientsock, self.clientAddres = self.serversock.accept()
 
 
     # FIXME: name of clientsock
-    def readHeader(self):
+    def readHeader(self, clientsock):
         # bufferSize = 4
-        header = self.clientsock.recv(self.byteSizeHeader) 
+        header = clientsock.recv(self.byteSizeHeader) 
         return str(header)
 
-    def readInt(self):
+    def readInt(self, clientsock):
         # buffersize = 4
-        # FIXME:variable name 
-        intBuffer = struct.unpack('i', self.clientsock.recv(self.byteSizeInt))
-        return intBuffer[0]
+        buff = clientsock.recv(self.byteSizeInt)
+        if buff == '':
+            intBuffer = 0
+        else:
+            # FIXME:variable name 
+            intBuffer = struct.unpack('i', buff)[0]
+        return intBuffer
 
     def getMatrix(self, clientsock):
         nmbRows = clientsock.recv(byteSizeInt)
         nmbCols = clientsock.recv(byteSizeInt)
 
     def run(self):
-        # data部受信
+
+        head = ''
         while True:
-            #クライアント側から文字列を8192Byte受信する
-            data = self.clientsock.recv(8192)
+            head = self.readHeader(self.clientsock)
+            self.prihtHeader(head)
+            size = self.readInt(self.clientsock)
+            self.printSize(size)
 
-            if not data:
-                print "end"
+            if head == 'code':
+                #クライアント側から文字列をsize分受信する
+                code = self.clientsock.recv(size)
+                self.printCode(code)
+                self.execCode(code)
+            elif head == 'data':
+                data = self.clientsock.recv(size)
+            elif head == 'end' or size == 0:
                 break
-
-            #受信したメッセージを表示する
-            print 'Data -> %s' % (data)
-            print '----execute----'
-            exec data
-            print '----end--------'
-            #変数s_msgに代入した文字列を送信する
-            #clientsock.sendall(rcvmsg) 
         self.clientsock.close()
+
+
+    def printSize(self, size):
+        print "Size -> %d" % (size)
+    def prihtHeader(self, header):
+        print "Header -> %s" % (header)
+    def printCode(self, code):
+        print 'Data -> %s' % (code)
+    def execCode(self, code):
+        print '----execute----'
+        exec code
+        print '----end--------'
 
 if __name__ == '__main__':
     host = str('localhost')
     port = int(1111)
     server = externalCodeReceiver(host, port)
-    header = server.readHeader()
-    size = server.readInt()
-    print header
-    print size
     server.run()
 
