@@ -8,9 +8,11 @@ import sys
 import struct
 
 class externalCodeReceiver():
-    byteSizeInt = 4
-    byteSizeHeader = 4
     def __init__(self, host, port):
+        
+        self.byteSizeInt = 4
+        self.byteSizeHeader = 4
+
         #AF_INET:IPv4 インターネット・プロトコル
         #SOCK_STREAM:TCP/IPを用いたSTREAM型のソケット
         self.serversock = socket.socket(socket.AF_INET, 
@@ -29,14 +31,14 @@ class externalCodeReceiver():
     # FIXME: name of clientsock
     def readHeader(self):
         # bufferSize = 4
-        header = self.clientsock.recv(4)
+        header = self.clientsock.recv(self.byteSizeHeader) 
         return str(header)
 
     def readInt(self):
         # buffersize = 4
         # FIXME:variable name 
-        intBuffer = struct.unpack('i', self.clientsock.recv(4))
-        return intBuffer
+        intBuffer = struct.unpack('i', self.clientsock.recv(self.byteSizeInt))
+        return intBuffer[0]
 
     def getMatrix(self, clientsock):
         nmbRows = clientsock.recv(byteSizeInt)
@@ -60,6 +62,7 @@ class externalCodeReceiver():
             #変数s_msgに代入した文字列を送信する
             #clientsock.sendall(rcvmsg) 
         self.clientsock.close()
+
 if __name__ == '__main__':
     host = str('localhost')
     port = int(1111)
