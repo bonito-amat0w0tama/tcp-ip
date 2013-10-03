@@ -6,6 +6,7 @@
 import socket
 import sys
 import struct
+import numpy as np
 
 class externalCodeReceiver():
     def __init__(self, host, port):
@@ -44,14 +45,20 @@ class externalCodeReceiver():
             intBuffer = struct.unpack('i', buff)[0]
         return intBuffer
 
-    def getMatrix(self, clientsock):
-        nmbRows = clientsock.recv(byteSizeInt)
-        nmbCols = clientsock.recv(byteSizeInt)
-
+    def getMatrix(self, rows, cols, size, clientsock):
+        # rows, cols の8バイト分マイナス
+        dataSize = size - 8
+        matrix = np.zeros((rows, cols))
+        for i in range(rows):
+            for j in range(cols):
+                matrix[i,j] = struct.unpack('f', clientsock.recv(4))[0]
+        return  matrix
     def run(self):
-
+        requestCount = 0
         head = ''
         while True:
+            requestCount += 1
+            self.printRequestCount(requestCount)
             head = self.readHeader(self.clientsock)
             self.prihtHeader(head)
             size = self.readInt(self.clientsock)
@@ -63,18 +70,30 @@ class externalCodeReceiver():
                 self.printCode(code)
                 self.execCode(code)
             elif head == 'data':
-                data = self.clientsock.recv(size)
+                rows = self.readInt(self.clientsock)
+                cols = self.readInt(self.clientsock)
+                matrix = self.getMatrix(rows, cols, size, self.clientsock)
+                print matrix
             elif head == 'end' or size == 0:
+
                 break
         self.clientsock.close()
 
 
     def printSize(self, size):
         print "Size -> %d" % (size)
+
     def prihtHeader(self, header):
         print "Header -> %s" % (header)
+
     def printCode(self, code):
-        print 'Data -> %s' % (code)
+        print 'Code-> %s' % (code)
+
+    def printRequestCount(self, count):
+        print "--------------------"
+        print "RequesCount -> %d" % (count)
+        print "--------------------"
+
     def execCode(self, code):
         print '----execute----'
         exec code
