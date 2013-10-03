@@ -7,6 +7,7 @@ import socket
 import sys
 import struct
 import numpy as np
+import nimfa
 
 class externalCodeReceiver():
     def __init__(self, host, port):
@@ -53,6 +54,9 @@ class externalCodeReceiver():
             for j in range(cols):
                 matrix[i,j] = struct.unpack('f', clientsock.recv(4))[0]
         return  matrix
+
+
+    # FIXME: メソッドの設計(clientsockなど）
     def run(self):
         requestCount = 0
         head = ''
@@ -73,7 +77,7 @@ class externalCodeReceiver():
                 rows = self.readInt(self.clientsock)
                 cols = self.readInt(self.clientsock)
                 matrix = self.getMatrix(rows, cols, size, self.clientsock)
-                print matrix
+                self.nmfMatrix(matrix)
             elif head == 'end' or size == 0:
 
                 break
@@ -99,6 +103,23 @@ class externalCodeReceiver():
         exec code
         print '----end--------'
 
+    def nmfMatrix(self, V):
+        V = np.array(V)
+        print V
+        fctr = nimfa.mf(V, seed = 'random_vcol', method = 'lsnmf', rank = 40, max_iter = 65)
+        fctr_res = nimfa.mf_run(fctr)
+
+        print 'Rss: %5.4f' % fctr_res.fit.rss()
+        print 'Evar: %5.4f' % fctr_res.fit.evar()
+        print 'K-L divergence: %5.4f' % fctr_res.distance(metric = 'kl')
+        print 'Sparseness, W: %5.4f, H: %5.4f' % fctr_res.fit.sparseness()
+
+        W = fctr_res.basis()
+        H = fctr_res.coef()
+        print W
+        print H
+
+        print W * H
 if __name__ == '__main__':
     host = str('localhost')
     port = int(1111)
