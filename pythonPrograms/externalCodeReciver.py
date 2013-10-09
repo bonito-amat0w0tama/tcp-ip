@@ -11,7 +11,7 @@ import nimfa
 
 class externalCodeReceiver():
     def __init__(self, host, port):
-        
+        self.stack = []
         self.byteSizeInt = 4
         self.byteSizeHeader = 4
 
@@ -58,6 +58,7 @@ class externalCodeReceiver():
 
     # FIXME: メソッドの設計(clientsockなど）
     def run(self):
+        stack = []
         requestCount = 0
         head = ''
         while True:
@@ -71,17 +72,48 @@ class externalCodeReceiver():
             if head == 'code':
                 #クライアント側から文字列をsize分受信する
                 code = self.clientsock.recv(size)
+                # code = "server.push(server.pop() + server.pop())"
                 self.printCode(code)
-                self.execCode(code)
+                # スコープ範囲の注意
+                exec code in locals()
+
             elif head == 'data':
                 rows = self.readInt(self.clientsock)
                 cols = self.readInt(self.clientsock)
                 matrix = self.getMatrix(rows, cols, size, self.clientsock)
-                self.nmfMatrix(matrix)
+                print matrix
+                self.push(matrix)
+                #self.nmfMatrix(matrix)
             elif head == 'end' or size == 0:
                 break
         self.clientsock.close()
 
+    def push(self, matrix):
+        self.stack.append(matrix)
+        self.pushMatrix(matrix)
+
+    def pop(self):
+        print self.stack
+        return self.stack.pop()
+        
+
+
+    def pushMatrix(self, matrix):
+        buff = ''
+        head = 'data'
+        rows = matrix.shape[0]
+        cols = matrix.shape[1]
+        size = rows * cols * 4 + 8
+
+        buff = struct.pack('cccciii', head[0], head[1], head[2], head[3], rows, cols, size)
+
+        for i in range(rows):
+            for j in range(cols):
+                val =  struct.pack('f', matrix[i][j])
+                buff = buff + val
+                print struct.unpack('f', val)
+        print struct.unpack('cccciiiffff', buff)
+        self.clientsock.sendall(buff)
 
     def printSize(self, size):
         print "Size -> %d" % (size)
