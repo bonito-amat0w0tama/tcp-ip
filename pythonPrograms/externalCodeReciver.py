@@ -166,8 +166,8 @@ class externalCodeReceiver():
     def printStack(self):
         print "length -> %d" % (len(self.stack))
         for i in range(len(self.stack)):
-            print "%d -> " % (i+1), self.stack[i]
-
+            print "%d -> " % (i+1)
+            print self.stack[i]
     def printSize(self, size):
         print "Size -> %d" % (size)
 
