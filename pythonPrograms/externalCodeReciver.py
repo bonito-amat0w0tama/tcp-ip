@@ -88,8 +88,8 @@ class externalCodeReceiver():
             if head == 'code':
                 #クライアント側から文字列をsize分受信する
                 code = self.clientsock.recv(size)
-                # code = "server.push(server.pop() + server.pop())"
                 self.printCode(code)
+
                 # スコープ範囲の注意
                 exec code in locals()
 
@@ -98,7 +98,7 @@ class externalCodeReceiver():
                 cols = self.readInt(self.clientsock)
                 matrix = self.getMatrix(rows, cols, size, self.clientsock)
                 self.printMatrix(matrix)
-                self.push(matrix)
+                self.stack.append(matrix)
                 #self.nmfMatrix(matrix)
             elif head == 'end ' or size == 0:
                 break
@@ -126,19 +126,23 @@ class externalCodeReceiver():
             head = head+ struct.unpack('c', buff[i])[0]
         return head
 
-    def printRowsAndCols(self, rows, cols):
-        print "Rows -> %d" % (rows)
-        print "Cols -> %d" % (cols)
 
     # FIXME: unncode
-    def convertBinaryToMatirx(self, buff, matrix, rows, cols, begin):
+    def convertBinaryToMatirx(self, buff, rows, cols, begin):
         matrix = np.zeros((rows, cols))
+        end = begin + 4
+
         for i in range(rows):
             for j in range(cols):
-                x = 0
+                matrix[i,j] = struct.unpack('f', buff[begin:end])[0]
+                begin += 4
+                end += 4
+
+        print matrix
+
     def printUnpackMatrix(self, buff):
         print "------------"
-        print 'sendingMatrix'
+        print 'unpackMatrix'
         print "------------"
         head = self.convertBinaryToString(buff, 4)
         size = struct.unpack('i', buff[4:8])[0]
@@ -147,12 +151,16 @@ class externalCodeReceiver():
         self.printHeader(head)
         self.printSize(size)
         self.printRowsAndCols(rows, cols)
-        self.convertBinaryToMatirx(self, buff, rows, cols, 16)
+        self.convertBinaryToMatirx(buff, rows, cols, 16)
         # print struct.unpack('cccciiiffff', buff)
 
     def printMatrix(self, matrix):
         print "data ->"
         print matrix
+
+    def printRowsAndCols(self, rows, cols):
+        print "Rows -> %d" % (rows)
+        print "Cols -> %d" % (cols)
 
     # FIXME: うんこーど
     def printStack(self):
