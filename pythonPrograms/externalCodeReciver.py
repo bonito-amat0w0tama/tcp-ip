@@ -39,6 +39,7 @@ class externalCodeReceiver():
     def readInt(self, clientsock):
         # buffersize = 4
         buff = clientsock.recv(self.byteSizeInt)
+
         if buff == '':
             intBuffer = 0
         else:
@@ -55,6 +56,21 @@ class externalCodeReceiver():
                 matrix[i,j] = struct.unpack('f', clientsock.recv(4))[0]
         return  matrix
 
+    def pushMatrix(self, matrix):
+        buff = ''
+        head = 'data'
+        rows = matrix.shape[0]
+        cols = matrix.shape[1]
+        size = rows * cols * 4 + 8
+
+        buff = struct.pack('cccciii', head[0], head[1], head[2], head[3], size, rows, cols)
+
+        for i in range(rows):
+            for j in range(cols):
+                val =  struct.pack('f', matrix[i][j])
+                buff = buff + val
+        self.printUnpackMatrix(buff)
+        self.clientsock.sendall(buff)
 
     # FIXME: メソッドの設計(clientsockなど）
     def run(self):
@@ -65,7 +81,7 @@ class externalCodeReceiver():
             requestCount += 1
             self.printRequestCount(requestCount)
             head = self.readHeader(self.clientsock)
-            self.prihtHeader(head)
+            self.printHeader(head)
             size = self.readInt(self.clientsock)
             self.printSize(size)
 
@@ -81,44 +97,73 @@ class externalCodeReceiver():
                 rows = self.readInt(self.clientsock)
                 cols = self.readInt(self.clientsock)
                 matrix = self.getMatrix(rows, cols, size, self.clientsock)
-                print matrix
+                self.printMatrix(matrix)
                 self.push(matrix)
                 #self.nmfMatrix(matrix)
-            elif head == 'end' or size == 0:
+            elif head == 'end ' or size == 0:
                 break
         self.clientsock.close()
-
+                   
     def push(self, matrix):
+        print "----"
+        print "push"
+        print "----"
+        self.printStack()
         self.stack.append(matrix)
         self.pushMatrix(matrix)
 
     def pop(self):
-        print self.stack
+        print "----"
+        print "pop"
+        print "----"
+        self.printStack()
         return self.stack.pop()
-        
 
+    # FIXME: length is bad
+    def convertBinaryToString(self, buff, length):
+        head = ''
+        for i in range(length):
+            head = head+ struct.unpack('c', buff[i])[0]
+        return head
 
-    def pushMatrix(self, matrix):
-        buff = ''
-        head = 'data'
-        rows = matrix.shape[0]
-        cols = matrix.shape[1]
-        size = rows * cols * 4 + 8
+    def printRowsAndCols(self, rows, cols):
+        print "Rows -> %d" % (rows)
+        print "Cols -> %d" % (cols)
 
-        buff = struct.pack('cccciii', head[0], head[1], head[2], head[3], rows, cols, size)
-
+    # FIXME: unncode
+    def convertBinaryToMatirx(self, buff, matrix, rows, cols, begin):
+        matrix = np.zeros((rows, cols))
         for i in range(rows):
             for j in range(cols):
-                val =  struct.pack('f', matrix[i][j])
-                buff = buff + val
-                print struct.unpack('f', val)
-        print struct.unpack('cccciiiffff', buff)
-        self.clientsock.sendall(buff)
+                x = 0
+    def printUnpackMatrix(self, buff):
+        print "------------"
+        print 'sendingMatrix'
+        print "------------"
+        head = self.convertBinaryToString(buff, 4)
+        size = struct.unpack('i', buff[4:8])[0]
+        rows = struct.unpack('i', buff[8:12])[0]
+        cols = struct.unpack('i', buff[12:16])[0]
+        self.printHeader(head)
+        self.printSize(size)
+        self.printRowsAndCols(rows, cols)
+        self.convertBinaryToMatirx(self, buff, rows, cols, 16)
+        # print struct.unpack('cccciiiffff', buff)
+
+    def printMatrix(self, matrix):
+        print "data ->"
+        print matrix
+
+    # FIXME: うんこーど
+    def printStack(self):
+        print "length -> %d" % (len(self.stack))
+        for i in range(len(self.stack)):
+            print "%d -> " % (i+1), self.stack[i]
 
     def printSize(self, size):
         print "Size -> %d" % (size)
 
-    def prihtHeader(self, header):
+    def printHeader(self, header):
         print "Header -> %s" % (header)
 
     def printCode(self, code):
