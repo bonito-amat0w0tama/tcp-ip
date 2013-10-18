@@ -64,18 +64,19 @@ class externalCodeReceiver():
         size = rows * cols * 4 + 8
 
         buff = struct.pack('cccciii', head[0], head[1], head[2], head[3], size, rows, cols)
-
         for i in range(rows):
             for j in range(cols):
-                val =  struct.pack('f', matrix[i][j])
+                # print type(matrix[i,j])
+                val =  struct.pack('f', matrix[i,j])
                 buff = buff + val
+
         self.printUnpackMatrix(buff)
-        self.clientsock.sendall(buff)
+        self.clientsock.send(buff)
 
     # FIXME: メソッドの設計(clientsockなど）
     def run(self):
         stack = []
-        requestCount = 0
+        requestCount = 0          
         head = ''
         while True:
             requestCount += 1
@@ -92,6 +93,9 @@ class externalCodeReceiver():
 
                 # スコープ範囲の注意
                 exec code in locals()
+                # スタックからになるまでJavaにおくる
+                while len(self.stack) > 0:
+                    self.pushMatrix(self.pop())
 
             elif head == 'data':
                 rows = self.readInt(self.clientsock)
@@ -103,19 +107,19 @@ class externalCodeReceiver():
             elif head == 'end ' or size == 0:
                 break
         self.clientsock.close()
-                   
+
     def push(self, matrix):
         print "----"
         print "push"
         print "----"
         self.printStack()
         self.stack.append(matrix)
-        self.pushMatrix(matrix)
+        # self.pushMatrix(matrix)
 
     def pop(self):
-        print "----"
+        print "---"
         print "pop"
-        print "----"
+        print "---"
         self.printStack()
         return self.stack.pop()
 
@@ -164,10 +168,11 @@ class externalCodeReceiver():
 
     # FIXME: うんこーど
     def printStack(self):
-        print "length -> %d" % (len(self.stack))
+        print "stack_length -> %d" % (len(self.stack))
         for i in range(len(self.stack)):
             print "%d -> " % (i+1)
             print self.stack[i]
+
     def printSize(self, size):
         print "Size -> %d" % (size)
 
@@ -175,12 +180,13 @@ class externalCodeReceiver():
         print "Header -> %s" % (header)
 
     def printCode(self, code):
-        print 'Code-> %s' % (code)
+        print 'Code->'
+        print '%s' % (code)
 
     def printRequestCount(self, count):
-        print "--------------------"
+        print "------------------"
         print "RequestCount -> %d" % (count)
-        print "--------------------"
+        print "------------------"
 
     def execCode(self, code):
         print '----execute----'
@@ -188,11 +194,15 @@ class externalCodeReceiver():
         print '----end--------'
 
     def nmfMatrix(self, V):
+        print "---"
+        print "NMF"
+        print "---"
+
         V = np.array(V)
         print "Target matrix"
         print V
 
-        fctr = nimfa.mf(V, seed = 'random_vcol', method = 'lsnmf', rank = 40, max_iter = 65)
+        fctr = nimfa.mf(V, seed = 'random_vcol', method = 'lsnmf', rank = 40, max_iter = 10)
         fctr_res = nimfa.mf_run(fctr)
 
 
@@ -210,9 +220,11 @@ class externalCodeReceiver():
         print 'Evar: %5.4f' % fctr_res.fit.evar()
         print 'K-L divergence: %5.4f' % fctr_res.distance(metric = 'kl')
         print 'Sparseness, W: %5.4f, H: %5.4f' % fctr_res.fit.sparseness()
+
+        return W, H
+
 if __name__ == '__main__':
     host = str('localhost')
     port = int(1111)
     server = externalCodeReceiver(host, port)
     server.run()
-
