@@ -61,7 +61,7 @@ class ExternalCodeAdapterReceiverSample2 {
 
 
     def stack = []
-    def shell = new GroovyShell(new Binding(self: this))
+    def shell = new GroovyShell(new Binding(stack: this))
     def instream
     def outstream
 
