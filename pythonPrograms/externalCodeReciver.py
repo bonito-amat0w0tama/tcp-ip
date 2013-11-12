@@ -33,11 +33,12 @@ class externalCodeReceiver():
     # FIXME: name of clientsock
     def readHeader(self, clientsock):
         # bufferSize = 4
-        header = clientsock.recv(self.byteSizeHeader) 
+        header = clientsock.recv(self.byteSizeHeader)
         return str(header)
 
     def readInt(self, clientsock):
         # buffersize = 4
+        #print "buff"
         buff = clientsock.recv(self.byteSizeInt)
 
         if buff == '':
@@ -76,36 +77,47 @@ class externalCodeReceiver():
     # FIXME: メソッドの設計(clientsockなど）
     def run(self):
         stack = []
-        requestCount = 0          
+        requestCount = 0
         head = ''
+
         while True:
-            requestCount += 1
-            self.printRequestCount(requestCount)
-            head = self.readHeader(self.clientsock)
-            self.printHeader(head)
-            size = self.readInt(self.clientsock)
-            self.printSize(size)
+            try:
+                requestCount += 1
+                self.printRequestCount(requestCount)
+                head = self.readHeader(self.clientsock)
+                self.printHeader(head)
 
-            if head == 'code':
-                #クライアント側から文字列をsize分受信する
-                code = self.clientsock.recv(size)
-                self.printCode(code)
+                # headがendの時ここで終了しないとsizeの読み込みでsocet.errorが起きる
+                if head == "end ":
+                    print "Server is end"
+                    break
+                size = self.readInt(self.clientsock)
+                self.printSize(size)
 
-                # スコープ範囲の注意
-                exec code in locals()
-                # スタックからになるまでJavaにおくる
-                while len(self.stack) > 0:
-                    self.pushMatrix(self.pop())
+                if head == 'code':
+                    #クライアント側から文字列をsize分受信する
+                    code = self.clientsock.recv(size)
+                    self.printCode(code)
 
-            elif head == 'data':
-                rows = self.readInt(self.clientsock)
-                cols = self.readInt(self.clientsock)
-                matrix = self.getMatrix(rows, cols, size, self.clientsock)
-                self.printMatrix(matrix)
-                self.stack.append(matrix)
-                #self.nmfMatrix(matrix)
-            elif head == 'end ' or size == 0:
-                break
+                    # スコープ範囲の注意
+                    exec code in locals()
+                    # スタックからになるまでJavaにおくる
+                    while len(self.stack) > 0:
+                        self.pushMatrix(self.pop())
+
+                elif head == 'data':
+                    rows = self.readInt(self.clientsock)
+                    cols = self.readInt(self.clientsock)
+                    matrix = self.getMatrix(rows, cols, size, self.clientsock)
+                    self.printMatrix(matrix)
+                    self.stack.append(matrix)
+                    #self.nmfMatrix(matrix)
+                #elif head is 'end ' or size == 0:
+                    #break
+            except socket.error:
+                #print str(type(e))
+                print "Javaプログラムが不正終了した"
+
         self.clientsock.close()
 
     def push(self, matrix):
